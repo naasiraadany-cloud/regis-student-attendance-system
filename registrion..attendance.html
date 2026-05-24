@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Attendance System</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial;
+}
+
+body{
+  background:#eef2f7;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.page-header{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.section{
+  width:100%;
+  max-width:900px;
+  margin-bottom:25px;
+}
+
+.card-form,.box{
+  background:#fff;
+  padding:18px;
+  border-radius:14px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
+
+input,select{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  border:1px solid #ccc;
+  border-radius:8px;
+}
+
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  background:#1565c0;
+  color:#fff;
+}
+
+button:hover{
+  opacity:0.9;
+}
+
+.btn-cancel{
+  background:#d63031;
+}
+
+/* TABLE STYLE */
+.table-wrapper{
+  display:flex;
+  justify-content:center;
+}
+
+table{
+  width:100%;
+  max-width:850px;
+  border-collapse:collapse;
+  background:white;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 6px 18px rgba(0,0,0,0.1);
+}
+
+thead{
+  background:linear-gradient(135deg,#1565c0,#1e88e5);
+  color:white;
+}
+
+th,td{
+  padding:12px;
+  text-align:center;
+  font-size:14px;
+}
+
+tbody tr:hover{
+  background:#f1f7ff;
+}
+
+td button{
+  background:#e74c3c;
+  padding:6px 10px;
+  font-size:12px;
+  border-radius:6px;
+}
+
+/* REPORT */
+.report-box{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+}
+
+.circle{
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  color:#fff;
+}
+
+.green-circle{background:#27ae60}
+.red-circle{background:#e74c3c}
+</style>
+</head>
+
+<body>
+
+<div class="page-header">
+<h2>Student Attendance System</h2>
+</div>
+
+<!-- ✅ REGISTRATION FORM -->
+<div class="section">
+<div class="card-form">
+<h3>Student Registration</h3>
+
+<input id="new_id" placeholder="Student ID">
+<input id="new_name" placeholder="Student Name">
+<input id="new_class" placeholder="Class">
+
+<button onclick="addStudent()">Register</button>
+</div>
+</div>
+
+<!-- ✅ REGISTRATION TABLE -->
+<div class="section">
+<div class="box table-wrapper">
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Class</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="student_list"></tbody>
+</table>
+</div>
+</div>
+
+<!-- ATTENDANCE FORM -->
+<div class="section">
+<div class="card-form">
+
+<select id="student_select" onchange="pickStudent()">
+<option value="">Select Student</option>
+</select>
+
+<input id="student_id" placeholder="ID">
+<input id="student_name" placeholder="Name">
+<input id="student_class" placeholder="Class">
+
+<select id="status">
+<option value="">Status</option>
+<option>Present</option>
+<option>Absent</option>
+</select>
+
+<input type="date" id="date" readonly>
+
+<button onclick="saveAttendance()">Submit</button>
+<button class="btn-cancel" onclick="clearForm()">Cancel</button>
+
+</div>
+</div>
+
+<!-- ATTENDANCE TABLE -->
+<div class="section">
+<div class="box table-wrapper">
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Class</th>
+<th>Status</th>
+<th>Date</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="records"></tbody>
+</table>
+</div>
+</div>
+
+<!-- REPORT -->
+<div class="section">
+<div class="box">
+<div class="report-box">
+
+<div class="circle green-circle">
+<h3 id="p">0</h3>
+<p>Present</p>
+</div>
+
+<div class="circle red-circle">
+<h3 id="a">0</h3>
+<p>Absent</p>
+</div>
+
+</div>
+</div>
+</div>
+
+<script>
+
+let ATT="attendance";
+let STU="students";
+
+function $(id){return document.getElementById(id)}
+
+$("date").value=new Date().toISOString().split("T")[0];
+
+function load(k){return JSON.parse(localStorage.getItem(k)||"[]")}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+/* ================= REGISTER STUDENT ================= */
+function addStudent(){
+
+let id=$("new_id").value.trim();
+let name=$("new_name").value.trim();
+let cls=$("new_class").value.trim();
+
+if(!id||!name||!cls){
+alert("Fill all fields");
+return;
+}
+
+let data=load(STU);
+data.push({id,name,class:cls});
+save(STU,data);
+
+$("new_id").value="";
+$("new_name").value="";
+$("new_class").value="";
+
+loadStudents();
+renderStudents();
+}
+
+/* ================= STUDENT TABLE ================= */
+function renderStudents(){
+let data=load(STU);
+let body=$("student_list");
+body.innerHTML="";
+
+data.forEach((s,i)=>{
+body.innerHTML+=`
+<tr>
+<td>${s.id}</td>
+<td>${s.name}</td>
+<td>${s.class}</td>
+<td><button onclick="deleteStudent(${i})">Delete</button></td>
+</tr>`;
+});
+}
+
+/* DELETE STUDENT */
+function deleteStudent(i){
+let data=load(STU);
+data.splice(i,1);
+save(STU,data);
+renderStudents();
+loadStudents();
+}
+
+/* ================= DROPDOWN ================= */
+function loadStudents(){
+let data=load(STU);
+let sel=$("student_select");
+
+sel.innerHTML="<option value=''>Select Student</option>";
+
+data.forEach((s,i)=>{
+sel.innerHTML+=`<option value="${i}">${s.id} - ${s.name}</option>`;
+});
+}
+
+function pickStudent(){
+let i=$("student_select").value;
+let s=load(STU)[i];
+if(!s)return;
+
+$("student_id").value=s.id;
+$("student_name").value=s.name;
+$("student_class").value=s.class;
+}
+
+/* ================= ATTENDANCE ================= */
+function saveAttendance(){
+
+let id=$("student_id").value.trim();
+let name=$("student_name").value.trim();
+let cls=$("student_class").value.trim();
+let status=$("status").value;
+let date=$("date").value;
+
+if(!id||!name||!cls||!status){
+alert("Fill all fields");
+return;
+}
+
+let data=load(ATT);
+
+data.push({
+id:Date.now(),
+student_id:id,
+student_name:name,
+student_class:cls,
+status,
+date
+});
+
+save(ATT,data);
+
+renderAttendance();
+clearForm();
+}
+
+/* CLEAR */
+function clearForm(){
+$("student_id").value="";
+$("student_name").value="";
+$("student_class").value="";
+$("status").value="";
+}
+
+/* ================= ATTENDANCE TABLE ================= */
+function renderAttendance(){
+
+let data=load(ATT);
+let body=$("records");
+
+body.innerHTML="";
+
+let p=0,a=0;
+
+data.forEach(r=>{
+if(r.status=="Present")p++;
+if(r.status=="Absent")a++;
+
+body.innerHTML+=`
+<tr>
+<td>${r.student_id}</td>
+<td>${r.student_name}</td>
+<td>${r.student_class}</td>
+<td>${r.status}</td>
+<td>${r.date}</td>
+<td><button onclick="del(${r.id})">X</button></td>
+</tr>`;
+});
+
+$("p").innerText=p;
+$("a").innerText=a;
+}
+
+/* DELETE ATTENDANCE */
+function del(id){
+let data=load(ATT).filter(x=>x.id!=id);
+save(ATT,data);
+renderAttendance();
+}
+
+/* INIT */
+renderStudents();
+renderAttendance();
+loadStudents();
+
+</script>
+
+</body>
+</html>
